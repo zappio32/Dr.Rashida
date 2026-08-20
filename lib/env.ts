@@ -18,6 +18,10 @@ export function getServerEnv() {
     AUTH_SECRET: process.env.AUTH_SECRET,
     CLINIC_TIMEZONE: process.env.CLINIC_TIMEZONE
   });
-  if (!result.success) throw new Error('Invalid server environment configuration.');
+  if (!result.success) {
+    const missingOrInvalid = result.error.issues.map(issue => issue.path.join('.')).join(', ');
+    console.error(`[env] Invalid server environment configuration. Check these variables: ${missingOrInvalid}`);
+    throw new Error('Invalid server environment configuration.');
+  }
   return result.data;
 }
