@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth';
+import { z } from 'zod';
+const schema=z.object({appointmentId:z.string(),status:z.enum(['CONFIRMED','CHECKED_IN','IN_CONSULTATION','COMPLETED','CANCELLED','NO_SHOW']),reason:z.string().max(500).optional()});
+export async function PATCH(request:Request){try{const session=await requireRole(['DOCTOR']);const input=schema.parse(await request.json());const appointment=await prisma.appointment.findFirst({where:{id:input.appointmentId,doctorId:session.userId}});if(!appointment)return NextResponse.json({error:'Appointment not found.'},{status:404});const updated=await prisma.$transaction(async tx=>{const item=await tx.appointment.update({where:{id:appointment.id},data:{status:input.status}});await tx.appointmentStatusHistory.create({data:{appointmentId:item.id,fromStatus:appointment.status,toStatus:item.status,reason:input.reason,changedById:session.userId}});if(input.status==='CANCELLED')await tx.reminderJob.updateMany({where:{appointmentId:item.id,status:'QUEUED'},data:{status:'FAILED'}});return item});return NextResponse.json({appointment:updated})}catch{return NextResponse.json({error:'Unable to update appointment.'},{status:400})}}

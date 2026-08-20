@@ -1,0 +1,7 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
+import { appointmentSchema } from '@/lib/validation';
+import { createAppointment } from '@/lib/appointments';
+export async function POST(request: Request) { const session = await getSession(); if (!session || session.role !== 'PATIENT') return NextResponse.json({ error: 'You must be signed in as a patient to book.' }, { status: 401 }); try { const input = appointmentSchema.parse(await request.json()); const appointment = await createAppointment({ ...input, patientId: session.userId }); return NextResponse.json({ bookingId: appointment.bookingId }); } catch (error) { if (error instanceof Error && error.message === 'SLOT_UNAVAILABLE') return NextResponse.json({ error: 'Sorry, this appointment slot was just booked by another patient. Please select another available time.' }, { status: 409 }); return NextResponse.json({ error: 'Unable to create the appointment.' }, { status: 400 }); } }
+export async function GET() { const session = await getSession(); if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); const where = session.role === 'PATIENT' ? { patientId: session.userId } : session.role === 'DOCTOR' ? { doctorId: session.userId } : {}; const appointments = await prisma.appointment.findMany({ where, include: { service: true, patient: { select: { name: true, email: true } } }, orderBy: { startsAt: 'desc' } }); return NextResponse.json({ appointments }); }

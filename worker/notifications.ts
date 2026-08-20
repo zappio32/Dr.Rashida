@@ -1,0 +1,6 @@
+import { PrismaClient, NotificationStatus } from '@prisma/client';
+import { SandboxNotificationProvider } from '@/lib/providers';
+const prisma=new PrismaClient();
+const provider=new SandboxNotificationProvider();
+async function processNotifications(){const items=await prisma.notification.findMany({where:{status:NotificationStatus.QUEUED},include:{user:true},take:50});for(const item of items){try{const result=await provider.send({to:item.user.email,subject:item.subject,body:item.body});await prisma.$transaction([prisma.notification.update({where:{id:item.id},data:{status:NotificationStatus.SENT,attempts:{increment:1}}}),prisma.notificationLog.create({data:{notificationId:item.id,status:NotificationStatus.SENT,providerRef:result.providerRef}})])}catch(error){await prisma.$transaction([prisma.notification.update({where:{id:item.id},data:{status:NotificationStatus.FAILED,attempts:{increment:1},lastError:error instanceof Error?error.message:'Unknown provider error'}}),prisma.notificationLog.create({data:{notificationId:item.id,status:NotificationStatus.FAILED,error:error instanceof Error?error.message:'Unknown provider error'}})])}}}
+processNotifications().catch(error=>{console.error(error);process.exitCode=1}).finally(()=>prisma.$disconnect());

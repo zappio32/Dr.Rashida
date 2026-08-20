@@ -1,0 +1,4 @@
+import { PrismaClient, NotificationStatus } from '@prisma/client';
+const prisma=new PrismaClient();
+async function processReminders(){const jobs=await prisma.reminderJob.findMany({where:{status:NotificationStatus.QUEUED,runAt:{lte:new Date()}},include:{appointment:{include:{patient:true,doctor:true}}},take:50});for(const job of jobs){await prisma.$transaction(async tx=>{await tx.reminderJob.update({where:{id:job.id},data:{status:NotificationStatus.SENT,attempts:{increment:1}}});await tx.notification.create({data:{userId:job.appointment.patientId,appointmentId:job.appointmentId,channel:job.channel,status:NotificationStatus.SENT,subject:'Appointment reminder',body:`Reminder for ${job.appointment.bookingId} at ${job.appointment.localDate} ${job.appointment.localTime} ${job.appointment.timezone}`}})})}}
+processReminders().catch(error=>{console.error(error);process.exitCode=1}).finally(()=>prisma.$disconnect());
