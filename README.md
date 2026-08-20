@@ -27,6 +27,8 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+After deployment, check `https://your-domain.example/api/health`. A `200` response means the app can reach PostgreSQL. A `503` response means the deployment's `DATABASE_URL`, network allowlist, SSL mode, or database service still needs configuration. Run the committed migrations with `npm run db:deploy` before testing login or booking.
+
 The seed script hashes passwords before storing them. Set `SEED_*` values in `.env`; seed credentials are never rendered in the frontend. Use the three development accounts only when `DEMO_MODE=true`, then replace them and set `DEMO_MODE=false` before launch.
 
 ## Commands
