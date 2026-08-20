@@ -1,5 +1,7 @@
 .next/
 node_modules/
 .env
-.env.local
-.env*.localnode_modules
+.env.*
+!.env.example
+*.log
+coverage/

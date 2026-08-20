@@ -66,6 +66,7 @@ model PatientProfile {
   id        String @id @default(cuid())
   userId    String @unique
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth DateTime? @db.Date
   age       Int?
   gender    String?
   city      String?

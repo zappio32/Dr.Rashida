@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:check": "tsx scripts/db-check.ts",
     "db:reset": "node scripts/reset-db.js",
     "worker:reminders": "tsx worker/reminders.ts",
     "worker:notifications": "tsx worker/notifications.ts"

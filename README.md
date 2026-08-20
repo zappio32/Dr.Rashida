@@ -29,7 +29,17 @@ Open `http://localhost:3000`.
 
 After deployment, check `https://your-domain.example/api/health`. A `200` response means the app can reach PostgreSQL. A `503` response means the deployment's `DATABASE_URL`, network allowlist, SSL mode, or database service still needs configuration. Run the committed migrations with `npm run db:deploy` before testing login or booking.
 
-The seed script hashes passwords before storing them. Set `SEED_*` values in `.env`; seed credentials are never rendered in the frontend. Use the three development accounts only when `DEMO_MODE=true`, then replace them and set `DEMO_MODE=false` before launch.
+The seed script hashes the development passwords before storing them. Seed credentials are never rendered in the frontend. Use the three development accounts only when `DEMO_MODE=true`, then remove or change them and set `DEMO_MODE=false` before launch.
+
+## Demo login accounts
+
+**DEVELOPMENT / DEMO ONLY. Do not use these credentials in production.**
+
+- Admin: `admin@drrashida.com` / `Admin@12345`
+- Doctor: `doctor@drrashida.com` / `Doctor@12345`
+- Patient: `patient@drrashida.com` / `Patient@12345`
+
+The seed stores only bcrypt password hashes in PostgreSQL. The passwords above are printed by `npm run db:seed` for local testing and are not displayed by the public UI.
 
 ## Commands
 
@@ -41,15 +51,23 @@ npm run start               # production server after build
 npm run db:migrate          # development migration
 npm run db:deploy           # deploy committed migrations in production
 npm run db:seed             # development/demo seed
+npm run db:check             # connection plus rollback-safe CRUD check
 npm run db:reset            # guarded development reset; blocked in production
 npm run worker:reminders    # process persisted reminder jobs once
 ```
 
 Run `worker:reminders` from a persistent scheduler or worker service. For production, replace the one-shot runner with a process supervisor/cron or queue consumer that invokes the same persisted `ReminderJob` records. Do not use browser timers.
 
+For a fresh development database, apply the committed migrations before seeding:
+
+```powershell
+npm run db:deploy
+npm run db:seed
+```
+
 ## Production configuration
 
-1. Provision PostgreSQL and set `DATABASE_URL`.
+1. Provision PostgreSQL and set `DATABASE_URL` using the exact connection string format shown in `.env.example`.
 2. Generate a long random `AUTH_SECRET` and set `APP_URL` and `CLINIC_TIMEZONE`.
 3. Run `npm run db:deploy` during deployment.
 4. Create the initial admin through a protected seed/setup process with strong environment-provided credentials. Never expose the development passwords.
@@ -58,6 +76,12 @@ Run `worker:reminders` from a persistent scheduler or worker service. For produc
 7. Configure the payment provider and implement its server-side checkout adapter. The webhook route is `/api/payments/webhook`; it requires `PAYMENT_WEBHOOK_SECRET`, verifies the provider signature, and updates payment transaction records. Never trust browser success callbacks.
 8. Configure a production video provider and store meeting links only on authorized appointment records. Expose them through an authenticated endpoint, not public pages.
 9. Run the application behind HTTPS and a process supervisor. Schedule the reminder worker as a durable service.
+
+For a non-destructive pre-release check, run `npm run db:check`. It performs a connection query and creates, updates, and deletes a temporary setting inside a transaction that is deliberately rolled back. It does not reset or delete production data.
+
+## Existing data and migrations
+
+The old browser/local JSON fixture is no longer a runtime data source and has been removed because it contained plaintext demo credentials. Persistent records are now represented by the Prisma schema and committed migration in `prisma/migrations/20260820120000_init`. Existing production data must be migrated into the corresponding PostgreSQL tables using a reviewed import script; do not run `db:reset` against a production database.
 
 ## Security checklist
 
