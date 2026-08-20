@@ -77,6 +77,65 @@ npm run db:seed
 8. Configure a production video provider and store meeting links only on authorized appointment records. Expose them through an authenticated endpoint, not public pages.
 9. Run the application behind HTTPS and a process supervisor. Schedule the reminder worker as a durable service.
 
+## Railway deployment
+
+1. Push this repository to GitHub. Confirm `.env`, `.env.local`, `.env.production`, and all `.env.*` files except `.env.example` are ignored.
+2. Create a Railway project.
+3. Add a Railway PostgreSQL service.
+4. Create an application service from the GitHub repository.
+5. Set Railway variables:
+
+```text
+NODE_ENV=production
+DEMO_MODE=false
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+APP_URL=https://your-railway-domain.up.railway.app
+AUTH_SECRET=<generate at least 32 random bytes locally>
+CLINIC_TIMEZONE=Asia/Kolkata
+PAYMENT_REQUIRED=false
+PAYMENT_PROVIDER=test
+EMAIL_PROVIDER=sandbox
+EMAIL_FROM=
+SMS_PROVIDER=sandbox
+WHATSAPP_PROVIDER=sandbox
+QUEUE_REDIS_URL=
+VIDEO_PROVIDER=disabled
+SEED_DEMO_ACCOUNTS=false
+```
+
+Set `DATABASE_URL` to the actual Railway PostgreSQL reference or connection string exposed by your Railway database service. Do not commit it. Generate `AUTH_SECRET` locally with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` and paste the output only into Railway variables.
+
+6. Use `npm run build` or `npm run railway-build` as the Railway build command.
+7. Use `npm start` as the Railway start command.
+8. Deploy the application.
+9. Run the production migration from a Railway shell or one-time deployment command:
+
+```powershell
+npx prisma migrate deploy
+```
+
+Never run `prisma migrate reset` or `prisma db push` against the Railway database.
+
+10. Verify `https://your-railway-domain.up.railway.app/api/health`. A healthy response has HTTP `200` and `{"status":"ok","database":"connected"}`.
+11. Test patient registration/login, doctor login/dashboard, admin login/dashboard, availability, booking, cancellation, and appointment management.
+
+### Railway demo seed
+
+Demo accounts are not created during a Railway production deploy. For a controlled development/staging database only, set `DEMO_MODE=true` and run:
+
+```powershell
+npx prisma db seed
+```
+
+The seed is idempotent and hashes the development passwords with bcrypt. Do not run it against a real patient database. To explicitly override the production guard for a controlled operation, set `SEED_DEMO_ACCOUNTS=true`, then remove that variable afterward.
+
+### Railway optional services
+
+- Payments remain disabled with `PAYMENT_REQUIRED=false` and `PAYMENT_PROVIDER=test` until a real provider adapter and webhook secret are configured.
+- Email, SMS, and WhatsApp remain sandbox/no-op provider boundaries until credentials and adapters are configured.
+- Redis is optional for this deployment. The persisted reminder and notification worker commands can be run as a separate Railway worker service when operationally configured; no localhost Redis URL is used in production.
+- Permanent medical document storage requires a private S3-compatible object-storage adapter. Do not rely on Railway ephemeral local disk for patient files.
+
 For a non-destructive pre-release check, run `npm run db:check`. It performs a connection query and creates, updates, and deletes a temporary setting inside a transaction that is deliberately rolled back. It does not reset or delete production data.
 
 ## Existing data and migrations

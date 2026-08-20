@@ -40,6 +40,9 @@ async function findDemoSlot(doctorProfileId: string, doctorUserId: string, servi
 }
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.DEMO_MODE !== 'true' && process.env.SEED_DEMO_ACCOUNTS !== 'true') {
+    throw new Error('Demo seeding is disabled in production. Set SEED_DEMO_ACCOUNTS=true only for an explicit controlled seed operation.');
+  }
   const admin = await upsertDemoUser(demoAccounts.admin);
   const doctorUser = await upsertDemoUser(demoAccounts.doctor);
   const patientUser = await upsertDemoUser(demoAccounts.patient);
