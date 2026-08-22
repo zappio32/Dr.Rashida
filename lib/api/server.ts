@@ -28,6 +28,20 @@ export async function apiServerFetch<T>(path: string, init?: RequestInit): Promi
   return body as T;
 }
 
+// Fetches optional dashboard data without letting one failing request crash the whole page.
+export async function safeServerFetch<T>(path: string, fallback: T, context?: string): Promise<T> {
+  try {
+    const result = await apiServerFetch<T>(path);
+    return result ?? fallback;
+  } catch (error) {
+    const status = error instanceof ApiError ? error.status : 'unknown';
+    const message = error instanceof ApiError ? error.message : error instanceof Error ? error.message : 'unknown error';
+    // Safe diagnostic log (no tokens/cookies/patient data) so Railway logs show the exact failing request.
+    console.error(`[dashboard${context ? `:${context}` : ''}] request failed: ${path} status=${status} message=${message}`);
+    return fallback;
+  }
+}
+
 export type ServerSession = { userId: string; role: string; name: string; email: string };
 
 export async function getServerSession(): Promise<ServerSession | null> {
