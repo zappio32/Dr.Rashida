@@ -28,6 +28,8 @@ export function rescheduleAppointment(id: string, localDate: string, localTime: 
   });
 }
 
-export function getAvailability(date: string, serviceId: string) {
-  return apiFetch<{ slots: string[]; timezone: string }>(`/api/availability?date=${date}&serviceId=${serviceId}`);
+export function getAvailability(date: string, serviceId: string, consultationType?: string) {
+  const query = new URLSearchParams({ date, serviceId });
+  if (consultationType) query.set('type', consultationType);
+  return apiFetch<{ slots: string[]; timezone: string }>(`/api/availability?${query.toString()}`);
 }
