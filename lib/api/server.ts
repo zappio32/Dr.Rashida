@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { API_BASE_URL } from './config';
+import { extractErrorMessage } from './errors';
 
 export class ApiError extends Error {
   status: number;
@@ -24,7 +25,7 @@ export async function apiServerFetch<T>(path: string, init?: RequestInit): Promi
   if (response.status === 401 || response.status === 403) return null;
   const isJson = response.headers.get('content-type')?.includes('application/json');
   const body = isJson ? await response.json() : undefined;
-  if (!response.ok) throw new ApiError(body?.detail || body?.error || 'Request failed.', response.status);
+  if (!response.ok) throw new ApiError(extractErrorMessage(body), response.status);
   return body as T;
 }
 

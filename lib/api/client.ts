@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { extractErrorMessage } from './errors';
 
 export class ApiError extends Error {
   status: number;
@@ -16,6 +17,6 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   });
   const isJson = response.headers.get('content-type')?.includes('application/json');
   const body = isJson ? await response.json() : undefined;
-  if (!response.ok) throw new ApiError(body?.detail || body?.error || 'Request failed.', response.status);
+  if (!response.ok) throw new ApiError(extractErrorMessage(body), response.status);
   return body as T;
 }
