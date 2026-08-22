@@ -5,12 +5,35 @@ export interface AppointmentInput {
   consultationType: 'ONLINE' | 'CLINIC';
   localDate: string;
   localTime: string;
+  doctorId?: string;
   concern?: string;
   notes?: string;
 }
 
+export interface PublicDepartment {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface PublicDoctor {
+  id: string;
+  name: string;
+  qualification: string;
+  departmentId: string;
+  durationMin: number;
+}
+
 export function listAppointments() {
   return apiFetch<{ appointments: unknown[] }>('/api/appointments');
+}
+
+export function listPublicDepartments() {
+  return apiFetch<{ departments: PublicDepartment[] }>('/api/public/departments');
+}
+
+export function listPublicDoctors(departmentId: string) {
+  return apiFetch<{ doctors: PublicDoctor[] }>(`/api/public/doctors?departmentId=${encodeURIComponent(departmentId)}`);
 }
 
 export function createAppointment(input: AppointmentInput) {
@@ -28,8 +51,10 @@ export function rescheduleAppointment(id: string, localDate: string, localTime: 
   });
 }
 
-export function getAvailability(date: string, serviceId: string, consultationType?: string) {
-  const query = new URLSearchParams({ date, serviceId });
-  if (consultationType) query.set('type', consultationType);
+export function getAvailability(date: string, params: { serviceId?: string; doctorId?: string; consultationType?: string }) {
+  const query = new URLSearchParams({ date });
+  if (params.doctorId) query.set('doctorId', params.doctorId);
+  if (params.serviceId) query.set('serviceId', params.serviceId);
+  if (params.consultationType) query.set('type', params.consultationType);
   return apiFetch<{ slots: string[]; timezone: string }>(`/api/availability?${query.toString()}`);
 }
